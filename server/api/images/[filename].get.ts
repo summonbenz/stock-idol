@@ -1,5 +1,13 @@
 import { getStore } from '@netlify/blobs'
 
+// SVG placeholder image
+const PLACEHOLDER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <rect width="400" height="400" fill="#f3f4f6"/>
+  <g transform="translate(200,200)">
+    <text x="0" y="0" font-size="120" text-anchor="middle" fill="#9ca3af">📦</text>
+  </g>
+</svg>`
+
 export default defineEventHandler(async (event) => {
   const name = event.context.params?.filename
   if (!name) {
@@ -7,13 +15,32 @@ export default defineEventHandler(async (event) => {
   }
 
   const store = getStore('product-images')
+  
+  // Get metadata first to check if exists and get content type
+  const metadata = await store.getMetadata(name)
+  
+  if (!metadata) {
+    console.warn(`Image not found: ${name}, returning placeholder`)
+    setHeader(event, 'Content-Type', 'image/svg+xml')
+    setHeader(event, 'Cache-Control', 'public, max-age=3600')
+    return PLACEHOLDER_SVG
+  }
+
+  // Get the blob as arrayBuffer
   const blob = await store.get(name, { type: 'arrayBuffer' })
 
   if (!blob) {
-    throw createError({ statusCode: 404, statusMessage: 'Image not found' })
+    console.warn(`Failed to get blob: ${name}, returning placeholder`)
+    setHeader(event, 'Content-Type', 'image/svg+xml')
+    setHeader(event, 'Cache-Control', 'public, max-age=3600')
+    return PLACEHOLDER_SVG
   }
 
-  setHeader(event, 'Content-Type', blob.metadata?.contentType || 'image/jpeg')
-  console.log('Blob:', blob)
-  return new Uint8Array(blob.data)
+  // Set proper headers
+  setHeader(event, 'Content-Type', metadata.contentType || 'image/jpeg')
+  setHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
+  setHeader(event, 'Content-Length', blob.byteLength.toString())
+  
+  // Return the arrayBuffer directly
+  return blob
 })
