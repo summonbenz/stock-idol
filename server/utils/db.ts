@@ -1,11 +1,19 @@
 import Database from 'better-sqlite3'
 import { join } from 'path'
+import { existsSync, mkdirSync } from 'fs'
 
 let db: Database.Database | null = null
 
 export function getDatabase() {
   if (!db) {
-    const dbPath = join(process.cwd(), 'data', 'stock-idol.db')
+    const dataDir = join(process.cwd(), 'data')
+    
+    // Ensure data directory exists
+    if (!existsSync(dataDir)) {
+      mkdirSync(dataDir, { recursive: true })
+    }
+    
+    const dbPath = join(dataDir, 'stock-idol.db')
     db = new Database(dbPath)
     
     // สร้างตารางสำหรับประเภทสินค้า

@@ -90,6 +90,74 @@ const uniqueVariants = computed(() => {
   return [...new Set(variants)].sort()
 })
 
+// Product filters
+const productFilter = ref({
+  search: '',
+  category_id: null as number | null,
+  band_id: null as number | null,
+  artist_id: null as number | null,
+  inStockOnly: false
+})
+
+// Computed: filtered products
+const filteredProducts = computed(() => {
+  let result = [...products.value]
+  
+  // Filter by search text
+  if (productFilter.value.search.trim()) {
+    const search = productFilter.value.search.toLowerCase()
+    result = result.filter(p => 
+      p.product_name.toLowerCase().includes(search) ||
+      p.variant?.toLowerCase().includes(search)
+    )
+  }
+  
+  // Filter by category
+  if (productFilter.value.category_id) {
+    result = result.filter(p => p.category_id === productFilter.value.category_id)
+  }
+  
+  // Filter by band
+  if (productFilter.value.band_id) {
+    const bandArtistIds = artists.value
+      .filter(a => a.band_id === productFilter.value.band_id)
+      .map(a => a.id)
+    result = result.filter(p => bandArtistIds.includes(p.artist_id!))
+  }
+  
+  // Filter by artist
+  if (productFilter.value.artist_id) {
+    result = result.filter(p => p.artist_id === productFilter.value.artist_id)
+  }
+  
+  // Filter by stock
+  if (productFilter.value.inStockOnly) {
+    result = result.filter(p => p.stock_quantity > 0)
+  }
+  
+  return result
+})
+
+// Computed: artists filtered by selected band in filter
+const filterArtists = computed(() => {
+  if (!productFilter.value.band_id) return artists.value
+  return artists.value.filter(a => a.band_id === productFilter.value.band_id)
+})
+
+function clearFilters() {
+  productFilter.value = {
+    search: '',
+    category_id: null,
+    band_id: null,
+    artist_id: null,
+    inStockOnly: false
+  }
+}
+
+function onFilterBandChange() {
+  productFilter.value.artist_id = null
+}
+
 // Artist management
 const selectedBandForArtist = ref<number | null>(null)
 const newArtistName = ref('')
@@ -239,7 +307,7 @@ async function duplicateProduct(product: ProductWithDetails) {
     await $fetch('/api/products', {
       method: 'POST',
       body: {
-        product_name: product.product_name + ' (สำเนา)',
+        product_name: product.product_name,
         variant: product.variant,
         image_url: product.image_url,
         price: product.price,
@@ -688,8 +756,76 @@ onMounted(() => {
           <h2 class="text-2xl font-bold text-white flex items-center">
             <span class="text-3xl mr-3">📋</span>
             รายการสินค้าทั้งหมด
-            <span class="ml-3 bg-white/20 px-4 py-1 rounded-full text-lg backdrop-blur-sm">{{ products.length }}</span>
+            <span class="ml-3 bg-white/20 px-4 py-1 rounded-full text-lg backdrop-blur-sm">{{ filteredProducts.length }}/{{ products.length }}</span>
           </h2>
+        </div>
+        
+        <!-- Filter Section -->
+        <div class="p-6 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-gray-200">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-2">🔍 ค้นหา</label>
+              <input
+                v-model="productFilter.search"
+                type="text"
+                placeholder="ชื่อสินค้า หรือ Variant"
+                class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+              />
+            </div>
+            
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-2">📂 ประเภท</label>
+              <select
+                v-model="productFilter.category_id"
+                class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+              >
+                <option :value="null">ทั้งหมด</option>
+                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-2">🎵 วง</label>
+              <select
+                v-model="productFilter.band_id"
+                @change="onFilterBandChange"
+                class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+              >
+                <option :value="null">ทั้งหมด</option>
+                <option v-for="band in sortedBands" :key="band.id" :value="band.id">{{ band.name }}</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-2">⭐ ศิลปิน</label>
+              <select
+                v-model="productFilter.artist_id"
+                :disabled="!productFilter.band_id"
+                class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all disabled:bg-gray-100"
+              >
+                <option :value="null">{{ productFilter.band_id ? 'ทั้งหมด' : 'เลือกวงก่อน' }}</option>
+                <option v-for="artist in filterArtists" :key="artist.id" :value="artist.id">{{ artist.name }}</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="flex items-center justify-between">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                v-model="productFilter.inStockOnly"
+                type="checkbox"
+                class="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              />
+              <span class="text-sm font-semibold text-gray-700">📦 แสดงเฉพาะสินค้าที่มีสต็อก</span>
+            </label>
+            
+            <button
+              @click="clearFilters"
+              class="px-4 py-2 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition-all duration-200 text-sm"
+            >
+              ❌ ล้างตัวกรอง
+            </button>
+          </div>
         </div>
         
         <div class="overflow-x-auto">
@@ -708,7 +844,7 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-              <tr v-for="product in products" :key="product.id" class="hover:bg-purple-50 transition-colors duration-200">
+              <tr v-for="product in filteredProducts" :key="product.id" class="hover:bg-purple-50 transition-colors duration-200">
                 <td class="px-6 py-4">
                   <img 
                     v-if="product.image_url" 
