@@ -9,7 +9,8 @@ export default defineEventHandler(async (event) => {
 
   const store = getStore('product-images')
 
-  const blob = await store.get(name) // ❗ ไม่ต้องใส่ type
+  console.log('Fetching name', name)
+  const blob = await store.get(name)
 
   if (!blob || !blob.body) {
     throw createError({ statusCode: 404, statusMessage: 'Image not found' })

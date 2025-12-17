@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
     
     // ส่งกลับ URL ของรูปภาพ
     return {
-      url: `/api/images/${filename}`
+      url: filename
     }
   } catch (error: any) {
     throw createError({
