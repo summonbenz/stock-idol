@@ -14,5 +14,6 @@ export default defineEventHandler(async (event) => {
   }
 
   setHeader(event, 'Content-Type', blob.metadata?.contentType || 'image/jpeg')
+  console.log('Blob:', blob)
   return new Uint8Array(blob.data)
 })
