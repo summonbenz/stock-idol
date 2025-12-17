@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { ProductWithDetails, Category, Band, Artist } from '../server/types'
 
+const { createWatermarkedImage } = useWatermark()
+
 const products = ref<ProductWithDetails[]>([])
 const categories = ref<Category[]>([])
 const bands = ref<Band[]>([])
@@ -22,6 +24,8 @@ const favorites = ref<number[]>([])
 // Image preview modal
 const showImageModal = ref(false)
 const selectedImage = ref<{ url: string, name: string, artist: string, band: string, variant: string } | null>(null)
+const watermarkedImageUrl = ref<string>('')
+const isLoadingWatermark = ref(false)
 
 // View mode
 const viewMode = ref<'grid' | 'table'>('table')
@@ -147,14 +151,27 @@ const isFavorite = (productId: number) => {
 }
 
 // Image preview methods
-const openImagePreview = (imageUrl: string, productName: string, artist: string, band: string, variant) => {
+const openImagePreview = async (imageUrl: string, productName: string, artist: string, band: string, variant) => {
   selectedImage.value = { url: imageUrl, name: productName, artist, band, variant }
   showImageModal.value = true
+  isLoadingWatermark.value = true
+  
+  try {
+    // Create watermarked version using canvas
+    watermarkedImageUrl.value = await createWatermarkedImage(imageUrl)
+  } catch (error) {
+    console.error('Failed to create watermark:', error)
+    watermarkedImageUrl.value = imageUrl // Fallback to original
+  } finally {
+    isLoadingWatermark.value = false
+  }
 }
 
 const closeImagePreview = () => {
   showImageModal.value = false
   selectedImage.value = null
+  watermarkedImageUrl.value = ''
+  isLoadingWatermark.value = false
 }
 
 // Methods
@@ -672,38 +689,26 @@ onMounted(() => {
             
             <!-- Image Container with Watermark -->
             <div class="relative bg-white rounded-2xl overflow-hidden shadow-2xl">
-              <div class="relative">
+              <!-- Loading State -->
+              <div v-if="isLoadingWatermark" class="flex items-center justify-center h-96">
+                <div class="text-purple-600 text-xl font-semibold">
+                  <span class="animate-pulse">กำลังโหลดรูปภาพ...</span>
+                </div>
+              </div>
+              
+              <!-- Watermarked Image -->
+              <div v-else class="relative select-none">
                 <img 
-                  v-if="selectedImage"
-                  :src="selectedImage.url" 
-                  :alt="selectedImage.name"
-                  class="w-full h-auto max-h-[80vh] object-contain"
+                  v-if="watermarkedImageUrl"
+                  :src="watermarkedImageUrl" 
+                  :alt="selectedImage?.name"
+                  class="w-full h-auto max-h-[80vh] object-contain pointer-events-none"
+                  @contextmenu.prevent
+                  @dragstart.prevent
                 />
                 
-                <!-- Watermark -->
-                <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  <div class="text-white/30 text-6xl font-bold transform -rotate-12 select-none">
-                    Bentoshop Idol
-                  </div>
-                </div>
-                
-                <!-- Diagonal Watermarks -->
-                <div class="absolute top-0 left-0 right-0 bottom-0 pointer-events-none overflow-hidden">
-                  <div 
-                    v-for="i in 6" 
-                    :key="i"
-                    class="absolute text-white/20 text-2xl font-bold transform -rotate-45 select-none whitespace-nowrap"
-                    :style="{
-                      top: `${(i - 1) * 20}%`,
-                      left: '-10%',
-                      width: '120%'
-                    }"
-                  >
-                    <span v-for="j in 5" :key="j" class="inline-block mx-16">
-                      Bentoshop Idol
-                    </span>
-                  </div>
-                </div>
+                <!-- Invisible overlay to prevent any interaction -->
+                <div class="absolute inset-0 bg-transparent cursor-default" @contextmenu.prevent @click.stop></div>
               </div>
               
               <!-- Product Info -->
@@ -740,5 +745,18 @@ onMounted(() => {
 
 .modal-enter-from .relative {
   transform: scale(0.9);
+}
+
+/* Prevent image download and right-click */
+img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 </style>
