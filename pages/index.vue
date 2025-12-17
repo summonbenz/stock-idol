@@ -22,6 +22,10 @@ const favorites = ref<number[]>([])
 // View mode
 const viewMode = ref<'grid' | 'table'>('table')
 
+// Pagination
+const currentPage = ref(1)
+const itemsPerPage = 50
+
 // Fetch data
 const fetchProducts = async () => {
   try {
@@ -110,6 +114,16 @@ const filteredProducts = computed(() => {
   return filtered
 })
 
+const totalPages = computed(() => {
+  return Math.ceil(filteredProducts.value.length / itemsPerPage)
+})
+
+const paginatedProducts = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return filteredProducts.value.slice(start, end)
+})
+
 // Favorites methods
 const toggleFavorite = (productId: number) => {
   const index = favorites.value.indexOf(productId)
@@ -142,7 +156,23 @@ const clearFilters = () => {
 
 const onFilterBandChange = () => {
   productFilter.value.artist_id = null
+  currentPage.value = 1
 }
+
+const changePage = (page: number) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
+// Watch filters to reset pagination
+watch([() => productFilter.value.search, () => productFilter.value.category_id, 
+       () => productFilter.value.artist_id, () => productFilter.value.inStockOnly, 
+       () => productFilter.value.favoriteOnly], () => {
+  currentPage.value = 1
+})
 
 // Initialize
 onMounted(() => {
@@ -235,7 +265,7 @@ onMounted(() => {
               <span class="text-3xl mr-3">📋</span>
               รายการสินค้า
               <span class="ml-3 bg-white/20 px-4 py-1 rounded-full text-lg backdrop-blur-sm">
-                {{ filteredProducts.length }}/{{ products.length }}
+                {{ filteredProducts.length }} รายการ
               </span>
             </h2>
             
@@ -350,7 +380,7 @@ onMounted(() => {
         <div v-if="viewMode === 'grid'" class="p-6">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <div
-              v-for="product in filteredProducts"
+              v-for="product in paginatedProducts"
               :key="product.id"
               class="bg-white rounded-xl border-2 border-gray-200 hover:border-purple-400 transition-all duration-300 hover:shadow-xl transform hover:scale-105 overflow-hidden"
             >
@@ -423,6 +453,42 @@ onMounted(() => {
             <span class="text-8xl mb-4 block">🔍</span>
             <p class="text-gray-500 font-semibold text-xl">ไม่พบสินค้าที่ค้นหา</p>
           </div>
+          
+          <!-- Pagination for Grid -->
+          <div v-if="filteredProducts.length > 0 && totalPages > 1" class="flex justify-center items-center gap-2 mt-8">
+            <button
+              @click="changePage(currentPage - 1)"
+              :disabled="currentPage === 1"
+              class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all"
+            >
+              ← ก่อนหน้า
+            </button>
+            
+            <div class="flex gap-1">
+              <button
+                v-for="page in totalPages"
+                :key="page"
+                @click="changePage(page)"
+                :class="[
+                  'px-4 py-2 rounded-lg font-semibold transition-all',
+                  currentPage === page 
+                    ? 'bg-purple-600 text-white' 
+                    : 'bg-gray-100 hover:bg-gray-200'
+                ]"
+                v-show="Math.abs(page - currentPage) <= 2 || page === 1 || page === totalPages"
+              >
+                {{ page }}
+              </button>
+            </div>
+            
+            <button
+              @click="changePage(currentPage + 1)"
+              :disabled="currentPage === totalPages"
+              class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all"
+            >
+              ถัดไป →
+            </button>
+          </div>
         </div>
         
         <!-- Table View -->
@@ -442,7 +508,7 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-              <tr v-for="product in filteredProducts" :key="product.id" class="hover:bg-purple-50 transition-colors duration-200">
+              <tr v-for="product in paginatedProducts" :key="product.id" class="hover:bg-purple-50 transition-colors duration-200">
                 <td class="px-6 py-4 text-center">
                   <button
                     @click="toggleFavorite(product.id)"
@@ -509,6 +575,42 @@ onMounted(() => {
               </tr>
             </tbody>
           </table>
+          
+          <!-- Pagination for Table -->
+          <div v-if="filteredProducts.length > 0 && totalPages > 1" class="flex justify-center items-center gap-2 p-6 border-t border-gray-200 bg-gray-50">
+            <button
+              @click="changePage(currentPage - 1)"
+              :disabled="currentPage === 1"
+              class="px-4 py-2 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all border border-gray-300"
+            >
+              ← ก่อนหน้า
+            </button>
+            
+            <div class="flex gap-1">
+              <button
+                v-for="page in totalPages"
+                :key="page"
+                @click="changePage(page)"
+                :class="[
+                  'px-4 py-2 rounded-lg font-semibold transition-all',
+                  currentPage === page 
+                    ? 'bg-purple-600 text-white' 
+                    : 'bg-white hover:bg-gray-100 border border-gray-300'
+                ]"
+                v-show="Math.abs(page - currentPage) <= 2 || page === 1 || page === totalPages"
+              >
+                {{ page }}
+              </button>
+            </div>
+            
+            <button
+              @click="changePage(currentPage + 1)"
+              :disabled="currentPage === totalPages"
+              class="px-4 py-2 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all border border-gray-300"
+            >
+              ถัดไป →
+            </button>
+          </div>
         </div>
       </div>
     </div>
