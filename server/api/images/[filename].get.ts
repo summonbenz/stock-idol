@@ -43,9 +43,12 @@ export default defineEventHandler(async (event) => {
       setHeader(event, 'Cache-Control', 'public, max-age=3600')
       return PLACEHOLDER_SVG
     }
+
+    console.log('blob retrieved successfully for:', blob)
     
     const contentType = metadata.contentType || 'image/jpeg'
     
+    console.log('Serving image with content type:', contentType)
     // Set response headers
     setHeader(event, 'Content-Type', contentType)
     setHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
