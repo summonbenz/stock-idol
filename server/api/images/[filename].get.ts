@@ -50,10 +50,13 @@ export default defineEventHandler(async (event) => {
     
     console.log('Serving image with content type:', contentType)
     // Set response headers
-    setHeader(event, 'Content-Type', contentType)
+    // setHeader(event, 'Content-Type', contentType)
     setHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
     
-    return blob
+    // return blob
+
+    setHeader(event, 'Content-Type', blob.metadata?.contentType || 'image/jpeg')
+    return new Uint8Array(blob.data)
   } catch (error: any) {
     console.error('Error retrieving image:', error)
     if (error.statusCode) {

@@ -387,7 +387,7 @@ onMounted(() => {
               <div class="aspect-square bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center overflow-hidden">
                 <img 
                   v-if="product.image_url" 
-                  :src="product.image_url" 
+                  :src="`/api/images/${product.image_url}`" 
                   :alt="product.product_name"
                   class="w-full h-full object-cover"
                 />
