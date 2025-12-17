@@ -247,7 +247,7 @@ onMounted(() => {
               <span class="text-5xl">✨</span>
               Bentoshop Idol
             </h1>
-            <p class="text-purple-100 text-lg">ระบบแสดงสต็อกสินค้าศิลปินไอดอล</p>
+            <p class="text-purple-100 text-lg">ระบบแสดงสต็อกสินค้าไอดอล</p>
           </div>
           <!-- <NuxtLink 
             to="/admin" 
@@ -665,7 +665,7 @@ onMounted(() => {
     <!-- Footer -->
     <div class="bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white mt-12">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
-        <p class="text-purple-100">© 2025 ระบบแสดงสต็อกสินค้าศิลปินไอดอล</p>
+        <p class="text-purple-100">© 2025 ระบบแสดงสต็อกสินค้าไอดอล</p>
       </div>
     </div>
     
