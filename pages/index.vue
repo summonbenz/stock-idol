@@ -618,7 +618,7 @@ onMounted(() => {
     <!-- Footer -->
     <div class="bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white mt-12">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
-        <p class="text-purple-100">© 2025 Stock Idol - ระบบจัดการสต็อกสินค้าศิลปิน</p>
+        <p class="text-purple-100">© 2025 ระบบแสดงสต็อกสินค้าศิลปินไอดอล</p>
       </div>
     </div>
   </div>
