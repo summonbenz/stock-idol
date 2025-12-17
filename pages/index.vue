@@ -19,6 +19,10 @@ const productFilter = ref({
 // Favorites state (stored in localStorage)
 const favorites = ref<number[]>([])
 
+// Image preview modal
+const showImageModal = ref(false)
+const selectedImage = ref<{ url: string, name: string, artist: string, band: string, variant: string } | null>(null)
+
 // View mode
 const viewMode = ref<'grid' | 'table'>('table')
 
@@ -142,6 +146,17 @@ const isFavorite = (productId: number) => {
   return favorites.value.includes(productId)
 }
 
+// Image preview methods
+const openImagePreview = (imageUrl: string, productName: string, artist: string, band: string, variant) => {
+  selectedImage.value = { url: imageUrl, name: productName, artist, band, variant }
+  showImageModal.value = true
+}
+
+const closeImagePreview = () => {
+  showImageModal.value = false
+  selectedImage.value = null
+}
+
 // Methods
 const clearFilters = () => {
   productFilter.value = {
@@ -174,7 +189,7 @@ watch([() => productFilter.value.search, () => productFilter.value.category_id,
   currentPage.value = 1
 })
 
-// Initialize
+// Handle ESC key to close modal
 onMounted(() => {
   // Load favorites from localStorage
   if (typeof window !== 'undefined') {
@@ -182,6 +197,19 @@ onMounted(() => {
     if (saved) {
       favorites.value = JSON.parse(saved)
     }
+    
+    // ESC key handler
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showImageModal.value) {
+        closeImagePreview()
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    
+    // Cleanup
+    onUnmounted(() => {
+      window.removeEventListener('keydown', handleEsc)
+    })
   }
   
   fetchProducts()
@@ -389,7 +417,8 @@ onMounted(() => {
                   v-if="product.image_url" 
                   :src="`/api/images/${product.image_url}`" 
                   :alt="product.product_name"
-                  class="w-full h-full object-cover"
+                  class="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                  @click="openImagePreview(`/api/images/${product.image_url}`, product.product_name ?? '', product.artist_name ?? '', product.band_name ?? '', product.variant ?? '')"
                 />
                 <span v-else class="text-8xl">📦</span>
               </div>
@@ -523,7 +552,8 @@ onMounted(() => {
                     v-if="product.image_url" 
                     :src="`/api/images/${product.image_url}`" 
                     alt="Product" 
-                    class="w-16 h-16 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
+                    class="w-16 h-16 object-cover rounded-lg border-2 border-gray-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                    @click="openImagePreview(`/api/images/${product.image_url}`, product.product_name ?? '', product.artist_name ?? '', product.band_name ?? '', product.variant ?? '')"
                   />
                   <div v-else class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-2xl border-2 border-gray-200">
                     📦
@@ -621,5 +651,94 @@ onMounted(() => {
         <p class="text-purple-100">© 2025 ระบบแสดงสต็อกสินค้าศิลปินไอดอล</p>
       </div>
     </div>
+    
+    <!-- Image Preview Modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div 
+          v-if="showImageModal" 
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          @click.self="closeImagePreview"
+        >
+          <div class="relative max-w-4xl max-h-[90vh] w-full">
+            <!-- Close Button -->
+            <button
+              @click="closeImagePreview"
+              class="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors text-4xl font-bold z-10"
+              title="ปิด (ESC)"
+            >
+              ✕
+            </button>
+            
+            <!-- Image Container with Watermark -->
+            <div class="relative bg-white rounded-2xl overflow-hidden shadow-2xl">
+              <div class="relative">
+                <img 
+                  v-if="selectedImage"
+                  :src="selectedImage.url" 
+                  :alt="selectedImage.name"
+                  class="w-full h-auto max-h-[80vh] object-contain"
+                />
+                
+                <!-- Watermark -->
+                <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                  <div class="text-white/30 text-6xl font-bold transform -rotate-12 select-none">
+                    Bentoshop Idol
+                  </div>
+                </div>
+                
+                <!-- Diagonal Watermarks -->
+                <div class="absolute top-0 left-0 right-0 bottom-0 pointer-events-none overflow-hidden">
+                  <div 
+                    v-for="i in 6" 
+                    :key="i"
+                    class="absolute text-white/20 text-2xl font-bold transform -rotate-45 select-none whitespace-nowrap"
+                    :style="{
+                      top: `${(i - 1) * 20}%`,
+                      left: '-10%',
+                      width: '120%'
+                    }"
+                  >
+                    <span v-for="j in 5" :key="j" class="inline-block mx-16">
+                      Bentoshop Idol
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Product Info -->
+              <div class="p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+                <h3 class="text-xl font-bold">{{ selectedImage?.artist }} ({{ selectedImage?.band }}) - {{ selectedImage?.name }} {{ selectedImage?.variant }}</h3>
+              </div>
+            </div>
+            
+            <!-- Instructions -->
+            <p class="text-center text-white/80 mt-4 text-sm">
+              กด ESC หรือคลิกพื้นหลังเพื่อปิด
+            </p>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-active .relative {
+  transition: transform 0.3s ease;
+}
+
+.modal-enter-from .relative {
+  transform: scale(0.9);
+}
+</style>
