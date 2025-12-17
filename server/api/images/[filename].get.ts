@@ -1,5 +1,5 @@
 import { getStore } from '@netlify/blobs'
-import { send } from 'h3'
+import { sendStream } from 'h3'
 
 export default defineEventHandler(async (event) => {
   const name = event.context.params?.filename
@@ -9,21 +9,18 @@ export default defineEventHandler(async (event) => {
 
   const store = getStore('product-images')
 
-  const blob = await store.get(name, {
-    type: 'arrayBuffer'
-  })
+  const blob = await store.get(name) // ❗ ไม่ต้องใส่ type
 
-  if (!blob) {
+  if (!blob || !blob.body) {
     throw createError({ statusCode: 404, statusMessage: 'Image not found' })
   }
 
-  // ✅ สำคัญมาก
   setHeader(
     event,
     'Content-Type',
     blob.metadata?.contentType || 'image/jpeg'
   )
 
-  // ✅ ต้องใช้ send
-  return send(event, Buffer.from(blob.data))
+  // ✅ ส่ง stream ตรง (ดีที่สุด)
+  return sendStream(event, blob.body)
 })
