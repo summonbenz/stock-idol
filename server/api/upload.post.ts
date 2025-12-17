@@ -1,6 +1,4 @@
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { getStore } from '@netlify/blobs'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -22,24 +20,33 @@ export default defineEventHandler(async (event) => {
       })
     }
     
-    // สร้างโฟลเดอร์ uploads ถ้ายังไม่มี
-    const uploadsDir = join(process.cwd(), 'public', 'uploads')
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+    if (file.type && !allowedTypes.includes(file.type)) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed'
+      })
     }
     
     // สร้างชื่อไฟล์ที่ไม่ซ้ำกัน
     const timestamp = Date.now()
     const ext = file.filename.split('.').pop()
     const filename = `${timestamp}.${ext}`
-    const filepath = join(uploadsDir, filename)
     
-    // บันทึกไฟล์
-    await writeFile(filepath, file.data)
+    // Upload to Netlify Blob
+    const store = getStore('product-images')
+    await store.set(filename, file.data, {
+      metadata: {
+        originalName: file.filename,
+        contentType: file.type || 'application/octet-stream',
+        uploadedAt: new Date().toISOString()
+      }
+    })
     
     // ส่งกลับ URL ของรูปภาพ
     return {
-      url: `/uploads/${filename}`
+      url: `/api/images/${filename}`
     }
   } catch (error: any) {
     throw createError({

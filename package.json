@@ -10,6 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@netlify/blobs": "^10.4.4",
     "@netlify/neon": "^0.1.0",
     "@nuxt/icon": "2.1.1",
     "@types/better-sqlite3": "^7.6.13",
