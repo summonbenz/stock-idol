@@ -24,6 +24,7 @@ export default defineEventHandler(async (event) => {
     // Check if blob exists first
     const metadata = await store.getMetadata(filename)
     console.log('Fetching metadata for:', filename)
+    console.log('Metadata:', metadata)
     
     if (!metadata) {
       console.warn(`Image not found in blob storage: ${filename}, returning placeholder`)
