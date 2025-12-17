@@ -718,7 +718,7 @@ onMounted(() => {
             />
             <div v-if="productForm.imagePreview || productForm.image_url" class="mt-2">
               <img 
-                :src="productForm.imagePreview || productForm.image_url" 
+                :src="`/api/images/${productForm.imagePreview || productForm.image_url}`" 
                 alt="Preview" 
                 class="w-32 h-32 object-cover rounded-lg border-2 border-gray-200"
               />
