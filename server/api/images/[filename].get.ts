@@ -36,11 +36,14 @@ export default defineEventHandler(async (event) => {
     return PLACEHOLDER_SVG
   }
 
+  // Convert ArrayBuffer to Buffer for proper binary response
+  const buffer = Buffer.from(blob)
+
   // Set proper headers
   setHeader(event, 'Content-Type', metadata.contentType || 'image/jpeg')
   setHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
-  setHeader(event, 'Content-Length', blob.byteLength.toString())
+  setHeader(event, 'Content-Length', buffer.length.toString())
   
-  // Return the arrayBuffer directly
-  return blob
+  // Return the buffer
+  return buffer
 })
