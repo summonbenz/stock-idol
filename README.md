@@ -26,7 +26,7 @@ bun run dev
 ## 📦 เทคโนโลยี
 
 - **Nuxt 4** - Vue.js Framework
-- **SQLite** - ฐานข้อมูล (better-sqlite3)
+- **Netlify DB (libSQL)** - Cloud Database (SQLite-compatible)
 - **TypeScript** - Type Safety
 - **Tailwind CSS** - Styling (built-in Nuxt)
 
@@ -106,13 +106,35 @@ stock-idol/
 
 ## Production
 
-Build the application for production:
+### Local Development
+The app uses a local SQLite file (`file:data/stock-idol.db`) when running locally.
+
+### Netlify Deployment
+
+1. **Link to Netlify** (if not already linked):
+```bash
+netlify link
+```
+
+2. **Enable Netlify DB**:
+   - Go to your Netlify site dashboard
+   - Enable "Netlify DB" (libSQL database)
+   - Environment variables `NETLIFY_DATABASE_URL` and `NETLIFY_DATABASE_AUTH_TOKEN` will be automatically set
+
+3. **Deploy**:
+```bash
+netlify deploy --prod
+```
+
+The database schema will be automatically created on first deployment.
+
+### Build for production:
 
 ```bash
 bun run build
 ```
 
-Preview production build:
+Preview production build locally:
 
 ```bash
 bun run preview

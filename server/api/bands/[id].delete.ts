@@ -1,7 +1,7 @@
 import { getDatabase } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
-  const db = getDatabase()
+  const sql = getDatabase()
   const id = getRouterParam(event, 'id')
   
   if (!id) {
@@ -12,16 +12,7 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
-    const stmt = db.prepare('DELETE FROM bands WHERE id = ?')
-    const result = stmt.run(id)
-    
-    if (result.changes === 0) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Band not found'
-      })
-    }
-    
+    await sql`DELETE FROM bands WHERE id = ${id}`
     return { success: true }
   } catch (error) {
     throw createError({

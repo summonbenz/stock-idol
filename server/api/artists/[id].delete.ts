@@ -1,7 +1,7 @@
 import { getDatabase } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
-  const db = getDatabase()
+  const sql = getDatabase()
   const id = getRouterParam(event, 'id')
   
   if (!id) {
@@ -12,19 +12,10 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
-    const stmt = db.prepare('DELETE FROM artists WHERE id = ?')
-    const result = stmt.run(id)
-    
-    if (result.changes === 0) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Artist not found'
-      })
-    }
-    
+    await sql`DELETE FROM artists WHERE id = ${id}`
     return { success: true }
   } catch (error: any) {
-    if (error.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
+    if (error.code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || error.message?.includes('FOREIGN KEY')) {
       throw createError({
         statusCode: 409,
         statusMessage: 'Cannot delete artist: it is being used by products'

@@ -2,11 +2,11 @@ import { getDatabase } from '../../utils/db'
 import type { Band } from '../../types'
 
 export default defineEventHandler(async (event) => {
-  const db = getDatabase()
+  const sql = getDatabase()
   
   try {
-    const bands = db.prepare('SELECT * FROM bands ORDER BY name').all() as Band[]
-    return bands
+    const bands = await sql`SELECT * FROM bands ORDER BY name`
+    return bands as Band[]
   } catch (error) {
     throw createError({
       statusCode: 500,

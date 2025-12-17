@@ -1,7 +1,7 @@
 import { getDatabase } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
-  const db = getDatabase()
+  const sql = getDatabase()
   const id = getRouterParam(event, 'id')
   const body = await readBody(event)
   
@@ -13,15 +13,16 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
-    const stmt = db.prepare('UPDATE artists SET name = ? WHERE id = ?')
-    stmt.run(body.name.trim(), id)
+    const name = body.name.trim()
     
-    const artist = db.prepare(`
+    await sql`UPDATE artists SET name = ${name} WHERE id = ${id}`
+    
+    const [artist] = await sql`
       SELECT a.*, b.name as band_name
       FROM artists a
       JOIN bands b ON a.band_id = b.id
-      WHERE a.id = ?
-    `).get(id)
+      WHERE a.id = ${id}
+    `
     
     return artist
   } catch (error: any) {

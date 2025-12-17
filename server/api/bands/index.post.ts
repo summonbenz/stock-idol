@@ -2,7 +2,7 @@ import { getDatabase } from '../../utils/db'
 import type { Band } from '../../types'
 
 export default defineEventHandler(async (event) => {
-  const db = getDatabase()
+  const sql = getDatabase()
   const body = await readBody(event)
   
   if (!body.name || body.name.trim() === '') {
@@ -13,13 +13,13 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
-    const stmt = db.prepare('INSERT INTO bands (name) VALUES (?)')
-    const result = stmt.run(body.name.trim())
+    const name = body.name.trim()
+    await sql`INSERT INTO bands (name) VALUES (${name})`
     
-    const band = db.prepare('SELECT * FROM bands WHERE id = ?').get(result.lastInsertRowid) as Band
-    return band
+    const [band] = await sql`SELECT * FROM bands WHERE name = ${name}`
+    return band as Band
   } catch (error: any) {
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE' || error.message?.includes('UNIQUE')) {
       throw createError({
         statusCode: 409,
         statusMessage: 'Band name already exists'

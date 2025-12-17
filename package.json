@@ -10,9 +10,10 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@netlify/neon": "^0.1.0",
     "@nuxt/icon": "2.1.1",
     "@types/better-sqlite3": "^7.6.13",
-    "better-sqlite3": "^12.5.0",
+    "netlify-cli": "^23.12.3",
     "nuxt": "^4.2.2",
     "vue": "^3.5.25",
     "vue-router": "^4.6.4"

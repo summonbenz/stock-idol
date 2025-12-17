@@ -2,7 +2,7 @@ import { getDatabase } from '../../utils/db'
 import type { Category } from '../../types'
 
 export default defineEventHandler(async (event) => {
-  const db = getDatabase()
+  const sql = getDatabase()
   const body = await readBody(event)
   
   if (!body.name || body.name.trim() === '') {
@@ -13,13 +13,13 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
-    const stmt = db.prepare('INSERT INTO categories (name) VALUES (?)')
-    const result = stmt.run(body.name.trim())
+    const name = body.name.trim()
+    await sql`INSERT INTO categories (name) VALUES (${name})`
     
-    const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(result.lastInsertRowid) as Category
-    return category
+    const [category] = await sql`SELECT * FROM categories WHERE name = ${name}`
+    return category as Category
   } catch (error: any) {
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE' || error.message?.includes('UNIQUE')) {
       throw createError({
         statusCode: 409,
         statusMessage: 'Category name already exists'

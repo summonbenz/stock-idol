@@ -1,7 +1,7 @@
 import { getDatabase } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
-  const db = getDatabase()
+  const sql = getDatabase()
   const id = getRouterParam(event, 'id')
   const body = await readBody(event)
   
@@ -13,32 +13,23 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
-    const stmt = db.prepare(`
+    const productName = body.product_name.trim()
+    const variant = body.variant?.trim() || null
+    const imageUrl = body.image_url || null
+    const price = body.price || 0
+    const artistId = body.artist_id || null
+    const categoryId = body.category_id
+    const stockQuantity = body.stock_quantity || 0
+    
+    await sql`
       UPDATE products 
-      SET product_name = ?, variant = ?, image_url = ?, price = ?, artist_id = ?, category_id = ?, 
-          stock_quantity = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `)
+      SET product_name = ${productName}, variant = ${variant}, image_url = ${imageUrl}, 
+          price = ${price}, artist_id = ${artistId}, category_id = ${categoryId}, 
+          stock_quantity = ${stockQuantity}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+    `
     
-    const result = stmt.run(
-      body.product_name.trim(),
-      body.variant?.trim() || null,
-      body.image_url || null,
-      body.price || 0,
-      body.artist_id || null,
-      body.category_id,
-      body.stock_quantity || 0,
-      id
-    )
-    
-    if (result.changes === 0) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Product not found'
-      })
-    }
-    
-    const product = db.prepare(`
+    const [product] = await sql`
       SELECT 
         p.*,
         c.name as category_name,
@@ -48,8 +39,8 @@ export default defineEventHandler(async (event) => {
       JOIN categories c ON p.category_id = c.id
       LEFT JOIN artists a ON p.artist_id = a.id
       LEFT JOIN bands b ON a.band_id = b.id
-      WHERE p.id = ?
-    `).get(id)
+      WHERE p.id = ${id}
+    `
     
     return product
   } catch (error) {

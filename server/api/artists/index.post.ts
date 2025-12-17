@@ -2,7 +2,7 @@ import { getDatabase } from '../../utils/db'
 import type { Artist } from '../../types'
 
 export default defineEventHandler(async (event) => {
-  const db = getDatabase()
+  const sql = getDatabase()
   const body = await readBody(event)
   
   if (!body.name || body.name.trim() === '') {
@@ -20,17 +20,21 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
-    const stmt = db.prepare('INSERT INTO artists (name, band_id) VALUES (?, ?)')
-    const result = stmt.run(body.name.trim(), body.band_id)
+    const name = body.name.trim()
+    const bandId = body.band_id
     
-    const artist = db.prepare(`
+    await sql`INSERT INTO artists (name, band_id) VALUES (${name}, ${bandId})`
+    
+    const [artist] = await sql`
       SELECT a.*, b.name as band_name
       FROM artists a
       JOIN bands b ON a.band_id = b.id
-      WHERE a.id = ?
-    `).get(result.lastInsertRowid) as Artist
+      WHERE a.name = ${name} AND a.band_id = ${bandId}
+      ORDER BY a.id DESC
+      LIMIT 1
+    `
     
-    return artist
+    return artist as Artist
   } catch (error) {
     throw createError({
       statusCode: 500,

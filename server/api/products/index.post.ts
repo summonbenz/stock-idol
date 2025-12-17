@@ -2,7 +2,7 @@ import { getDatabase } from '../../utils/db'
 import type { Product } from '../../types'
 
 export default defineEventHandler(async (event) => {
-  const db = getDatabase()
+  const sql = getDatabase()
   const body = await readBody(event)
   
   // Validation
@@ -21,22 +21,20 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
-    const stmt = db.prepare(`
+    const productName = body.product_name.trim()
+    const variant = body.variant?.trim() || null
+    const imageUrl = body.image_url || null
+    const price = body.price || 0
+    const artistId = body.artist_id || null
+    const categoryId = body.category_id
+    const stockQuantity = body.stock_quantity || 0
+    
+    await sql`
       INSERT INTO products (product_name, variant, image_url, price, artist_id, category_id, stock_quantity)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `)
+      VALUES (${productName}, ${variant}, ${imageUrl}, ${price}, ${artistId}, ${categoryId}, ${stockQuantity})
+    `
     
-    const result = stmt.run(
-      body.product_name.trim(),
-      body.variant?.trim() || null,
-      body.image_url || null,
-      body.price || 0,
-      body.artist_id || null,
-      body.category_id,
-      body.stock_quantity || 0
-    )
-    
-    const product = db.prepare(`
+    const [product] = await sql`
       SELECT 
         p.*,
         c.name as category_name,
@@ -46,8 +44,10 @@ export default defineEventHandler(async (event) => {
       JOIN categories c ON p.category_id = c.id
       LEFT JOIN artists a ON p.artist_id = a.id
       LEFT JOIN bands b ON a.band_id = b.id
-      WHERE p.id = ?
-    `).get(result.lastInsertRowid)
+      WHERE p.product_name = ${productName}
+      ORDER BY p.id DESC
+      LIMIT 1
+    `
     
     return product
   } catch (error: any) {
