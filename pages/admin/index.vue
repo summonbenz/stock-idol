@@ -872,7 +872,7 @@ onMounted(() => {
                 <td class="px-6 py-4">
                   <img 
                     v-if="product.image_url" 
-                    :src="product.image_url" 
+                    :src="`/api/images/${product.image_url}`" 
                     alt="Product" 
                     class="w-16 h-16 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
                   />
