@@ -73,6 +73,12 @@ async function initializeSchema() {
     await sql`CREATE INDEX IF NOT EXISTS idx_products_artist ON products(artist_id)`
     await sql`CREATE INDEX IF NOT EXISTS idx_artists_band ON artists(band_id)`
     
+    // รีเซ็ต sequences ให้ถูกต้อง (เพื่อป้องกัน duplicate key error)
+    await sql`SELECT setval('categories_id_seq', COALESCE((SELECT MAX(id) FROM categories), 0) + 1, false)`
+    await sql`SELECT setval('bands_id_seq', COALESCE((SELECT MAX(id) FROM bands), 0) + 1, false)`
+    await sql`SELECT setval('artists_id_seq', COALESCE((SELECT MAX(id) FROM artists), 0) + 1, false)`
+    await sql`SELECT setval('products_id_seq', COALESCE((SELECT MAX(id) FROM products), 0) + 1, false)`
+    
     console.log('Database schema initialized successfully')
   } catch (error) {
     console.error('Error initializing schema:', error)
